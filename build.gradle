@@ -1,0 +1,49 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+version = '1.0'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+//create jar  - with dependencies
+jar {
+    //below single line makes fat jar:
+    //from {configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    manifest {
+        attributes 'Implementation-Title': 'Gradle PlanetarySystem Jar File Example',
+            'Implementation-Version': version,
+            'Main-Class': 'com.space.PlanetarySystem'
+    }
+}
+
+
+//use jcenter to fetch external dependencies
+repositories {
+    maven {
+        url  "http://dl.bintray.com/kristina-hager/kh-examples" 
+    }
+    jcenter()
+    //could use below if you want to test jars locally
+    //flatDir {
+        //dirs '../repos'
+    //}
+}
+
+//add dependencies
+dependencies {
+    //compile 'kristina-hager.kh-examples.com.example:HelloPlanet-1.0.jar'
+    compile group: 'example.com', name: 'HelloPlanet', version: '1.0'
+    //get hllo jar from local filesystem. 
+    //compile 'com.example:HelloPlanet-1.0.jar
+    //compile group: 'commons-collections', name: 'commons-collections', version: '3.2'
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+    //adding runtime dep inherited from hello-1.0.jar
+    //if using fat hello-1.0 jar, don't need the below
+    //runtime 'ch.qos.logback:logback-classic:1.1.2'
+}
+
+test {
+    systemProperties 'property': 'value'
+}
+
+
