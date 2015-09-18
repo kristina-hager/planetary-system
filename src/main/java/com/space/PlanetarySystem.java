@@ -22,7 +22,7 @@ public class PlanetarySystem {
     }
 
     public String getName() { 
-        return new String(name);
+        return name;
     }
 
     public void addPlanet(String planetName) {
