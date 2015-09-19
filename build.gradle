@@ -11,11 +11,11 @@ version = '1.0.0'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
+//set basename of jar per usual jarfile naming conventions
+jar.baseName = 'planetary-system'
+
 //create jar  - with dependencies
 jar {
-    //below single line makes fat jar:
-    //TODO temp is below in place
-    from {configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     manifest {
         attributes 'Implementation-Title': 'Gradle PlanetarySystem Jar File Example',
             'Implementation-Version': version,
@@ -23,9 +23,21 @@ jar {
     }
 }
 
-//set basename of jar per usual jarfile naming conventions
-jar.baseName = 'planetary-system'
-
+//create a jar with hello-planet dependency
+task fatJar(type: Jar) {
+    //need to add a classifier to distinguish this from the regular jar
+    classifier 'fatJar'
+    manifest {
+        attributes 'Implementation-Title': 'Gradle PlanetarySystem Fat Jar File Example',
+            'Implementation-Version': version,
+            'Main-Class': 'com.space.PlanetarySystem'
+    }
+    //give fat jar a unique name
+    baseName = jar.baseName + '-fat'
+    //below single line makes fat jar:
+    from {configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
 
 //use jcenter to fetch external dependencies
 repositories {
@@ -69,7 +81,51 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
     archives sourcesJar
     archives javadocJar
+    archives fatJar
 }
+
+//adding maven information
+publishing {
+	publications {
+        //name 'MyPublication' corresponds to 'publications' setting in bintray section
+		MyPublication(MavenPublication) {
+			from components.java
+            groupId 'example.com'
+            artifactId jar.baseName
+            version version
+
+            //add sources and javadoc jars to upload
+            artifact(sourcesJar)
+            artifact(javadocJar)
+            artifact(fatJar)
+		}
+	}
+}
+
+//adding bintray / jcenter configuration
+//note: I prefer to set credentials in my shell env rather than hard-coding them here
+//use command: 
+//gradle bintrayUpload
+//to upload the archives
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    //links to 'publishing' section above:
+    publications = ['MyPublication']
+    //package info. repo, name, licenses, vcsUrl are required
+    pkg {
+        repo = 'kh-examples'
+        name = jar.baseName
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/kristina-hager/planetary-system.git'
+        //in version, only name is required
+        version {
+            name = version
+            desc = 'Planetary system - a simple java example'
+        }
+    }
+}
+
 
 //to publish to local filesystem (useful for testing)
 //e.g.
