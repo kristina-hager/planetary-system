@@ -3,17 +3,32 @@ plugins {
 }
 
 apply plugin: 'java'
-apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
 
 version = '1.0.0'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
-
-//set basename of jar per usual jarfile naming conventions
 jar.baseName = 'planetary-system'
 
+def localReleaseDest = "/Users/kristina/localRepos"
+
+//use jcenter to fetch external dependencies
+repositories {
+    maven {
+        url  "http://dl.bintray.com/kristina-hager/kh-examples" 
+    }
+    jcenter()
+    //use below if you want to test jars locally, e.g. to test before uploading
+    //flatDir {
+        //dirs "file://${localReleaseDest}"
+    //}
+}
+
+//add dependencies
+dependencies {
+    compile group: 'example.com', name: 'hello-planet', version: '1.1.0'
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
 //create jar  - with dependencies
 jar {
     manifest {
@@ -23,7 +38,8 @@ jar {
     }
 }
 
-//create a jar with hello-planet dependency
+//create a jar with hello-planet dependency included
+//this is experimental and not used in any subsequent examples in my work
 task fatJar(type: Jar) {
     //need to add a classifier to distinguish this from the regular jar
     classifier 'fatJar'
@@ -39,29 +55,8 @@ task fatJar(type: Jar) {
     with jar
 }
 
-//use jcenter to fetch external dependencies
-repositories {
-    maven {
-        url  "http://dl.bintray.com/kristina-hager/kh-examples" 
-    }
-    jcenter()
-    //could use below if you want to test jars locally, e.g. to test before uploading
-    //flatDir {
-        //dirs '../repos'
-    //}
-}
 
-//add dependencies
-dependencies {
-    compile group: 'example.com', name: 'hello-planet', version: '1.1.0'
-    testCompile group: 'junit', name: 'junit', version: '4.+'
-}
-
-test {
-    systemProperties 'property': 'value'
-}
-
-//add tasks to create sources jar
+//add tasks to create sources JAR
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
@@ -69,7 +64,7 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     baseName = jar.baseName
 }
 
-//create javadoc jar
+//create javadoc JAR
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
@@ -77,12 +72,24 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     baseName = jar.baseName
 }
 
-//add to artifacts
+//add javadoc, sources, fat JARs to artifacts
 artifacts {
     archives sourcesJar
     archives javadocJar
     archives fatJar
 }
+
+//publish to Maven repo on local filesystem
+uploadArchives {
+    repositories {
+        flatDir {
+            dirs "file://${localReleaseDest}"
+        }
+    }
+}
+
+//require :build tasks such as :test,:assemble before upload archives
+tasks.uploadArchives.dependsOn(build)
 
 //adding maven information
 publishing {
@@ -102,10 +109,10 @@ publishing {
 	}
 }
 
-//adding bintray / jcenter configuration
-//note: I prefer to set credentials in my shell env rather than hard-coding them here
-//use command: 
-//gradle bintrayUpload
+//bintray / jcenter configuration
+//NOTE: I set credentials in my SHELL environment rather than here for security reasons
+//  There is more than one way to achieve this security.
+//use command: gradle bintrayUpload
 //to upload the archives
 bintray {
     user = System.getenv('BINTRAY_USER')
@@ -126,14 +133,6 @@ bintray {
     }
 }
 
+//again, add a dependency on :build to :bintrayUpload
+tasks.bintrayUpload.dependsOn(build)
 
-//to publish to local filesystem (useful for testing)
-//e.g.
-//gradle uploadArchives
-uploadArchives {
-    repositories {
-        flatDir {
-            dirs '../repos'
-        }
-    }
-}
